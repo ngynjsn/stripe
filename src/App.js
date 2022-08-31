@@ -1,15 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import SubscriptionCard from './SubscriptionCard';
 import './App.css';
+import { createCustomerPortalSession } from './server/stripeServer';
+import { dynamoDBPutItem } from './server/dynamoDB';
+
+const SUBSCRIPTION_TYPES = {
+  MONTHLY: "MONTHLY",
+  YEARLY: "YEARLY"
+}
 
 const ProductDisplay = () => (
   <div className='cards-container'>
-    <SubscriptionCard title="Monthly Plan" subscription="MONTHLY" price="$7.00 / month" />
-    <SubscriptionCard title="Yearly Plan" subscription="YEARLY" price="$70.00 / year" />
+    <SubscriptionCard title="Monthly Plan" subscription={SUBSCRIPTION_TYPES.MONTHLY} price="$7.00 / month" />
+    <SubscriptionCard title="Yearly Plan" subscription={SUBSCRIPTION_TYPES.YEARLY} price="$70.00 / year" />
   </div>
 );
 
 const SuccessDisplay = ({ sessionId }) => {
+  useEffect(() => {
+    // params for dynamoDBPutItem: (uid, userEmail, subscriptionType, licenseExpiryDate, trialPeriod)
+    dynamoDBPutItem("12345678", "nguyen.j1305@gmail.com", SUBSCRIPTION_TYPES.MONTHLY, "2022-10-14", "2022-09-14")
+  }, [])
+
+  const handleBillingInformationButtonClick = () => {
+    const session_id = sessionId;
+    createCustomerPortalSession(session_id)
+      .then((response) => {
+        console.log(response);
+        window.location = response.body;
+      }).catch(error => {
+        console.log(error);
+      })
+  }
+
   return (
     <section>
       <div className="product Box-root">
@@ -17,17 +40,9 @@ const SuccessDisplay = ({ sessionId }) => {
           <h3>Subscription to starter plan successful!</h3>
         </div>
       </div>
-      <form action="http://localhost:8000/create-portal-session" method="POST">
-        <input
-          type="hidden"
-          id="session-id"
-          name="session_id"
-          value={sessionId}
-        />
-        <button id="checkout-and-portal-button" type="submit">
-          Manage your billing information
-        </button>
-      </form>
+      <button onClick={handleBillingInformationButtonClick} type="submit">
+        Manage your billing information
+      </button>
     </section>
   );
 };
@@ -58,6 +73,10 @@ export default function App() {
         "Order canceled -- continue to shop around and checkout when you're ready."
       );
     }
+
+    if (query.get('billing')) {
+      console.log("show page to update billing information");
+    }
   }, [sessionId]);
 
   if (!success && message === '') {
@@ -65,6 +84,13 @@ export default function App() {
   } else if (success && sessionId !== '') {
     return <SuccessDisplay sessionId={sessionId} />;
   } else {
-    return <Message message={message} />;
+    return (
+      <div>
+        <Message message={message} />;
+        <button onClick={() => { window.location = 'http://localhost:3000' }}>
+          Return to shop
+        </button>
+      </div>
+    )
   }
 }

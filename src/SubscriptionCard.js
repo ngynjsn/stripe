@@ -1,6 +1,18 @@
 import './SubscriptionCard.css'
+import { createCheckoutSession } from './server/stripeServer'
 
 const SubscriptionCard = ({ title, subscription, price }) => {
+    const handleButtonClick = () => {
+        createCheckoutSession(subscription)
+            .then((response) => {
+                window.location = response.body;
+            })
+            .catch(error => {
+                console.log(error);
+            }
+            );
+    }
+
     return (
         <div className='main-card'>
             <div className="product">
@@ -9,13 +21,9 @@ const SubscriptionCard = ({ title, subscription, price }) => {
                     <h5>{price}</h5>
                 </div>
             </div>
-            <form action="http://localhost:8000/create-checkout-session" method="POST">
-                {/* Add a hidden field with the lookup_key of your Price */}
-                <input type="hidden" name="lookup_key" value={subscription} />
-                <button id="checkout-and-portal-button" type="submit">
-                    Buy {title}
-                </button>
-            </form>
+            <button onClick={handleButtonClick} type="submit">
+                Buy {title}
+            </button>
         </div>
     )
 }
